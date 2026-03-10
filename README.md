@@ -246,62 +246,6 @@ All data was scraped, chunked, and embedded in a separate Colab notebook. The ba
 | Embedding | S-PubMedBert-MS-MARCO (768 dims) |
 | Reranking | CrossEncoder ms-marco-MiniLM-L-6-v2 |
 | LLM | Gemini 2.5 Flash / MedGemma 4B |
-| Deployment | Azure App Service (Docker) |
-
----
-
-## Project Structure
-
-```
-medchatbot_1/
-├── README.md
-├── CLAUDE.md
-├── docs/
-│   ├── PRD.md
-│   ├── API_SPEC.md
-│   ├── ARCHITECTURE.md
-│   ├── MODELS.md
-│   ├── EVALUATION.md
-│   ├── FRONTEND_INTEGRATION.md
-│   └── FULL_CODEBASE_REVIEW.md
-├── notebooks/
-│   ├── medgemma_colab.ipynb
-│   ├── medgemma_kaggle.ipynb
-│   └── medgemma_kaggle_ngrok.ipynb
-└── backend/
-    ├── .env                      # API keys (DO NOT commit)
-    ├── requirements.txt
-    ├── Dockerfile
-    ├── bm25_index.pkl            # BM25 index (from Colab)
-    ├── parents.json              # Seed file (one-time DB import)
-    ├── alembic.ini
-    ├── alembic/
-    ├── evaluation/
-    │   ├── test_cases.json
-    │   └── run_eval.py
-    └── app/
-        ├── main.py               # FastAPI app + all endpoints
-        ├── config.py             # Settings from .env
-        ├── database.py           # PostgreSQL + Redis clients
-        ├── models/
-        │   ├── schemas.py        # Request/response models
-        │   └── db_models.py      # DB table definitions
-        ├── retrieval/
-        │   ├── embedder.py       # S-PubMedBert encoding
-        │   ├── query_processor.py # Intent, language, translate, reformulate
-        │   ├── hybrid_search.py  # Dense + BM25 + RRF fusion
-        │   ├── reranker.py       # CrossEncoder reranking
-        │   └── retriever.py      # Full retrieval pipeline
-        ├── generation/
-        │   └── llm.py            # Gemini Flash / MedGemma
-        ├── services/
-        │   ├── cache_service.py  # Redis caching
-        │   ├── chat_service.py   # Chat history CRUD
-        │   └── log_service.py    # Q&A logging
-        └── scripts/
-            └── seed_parents.py   # One-time: parents.json → PostgreSQL
-```
-
 ---
 
 ## Evaluation
@@ -314,16 +258,6 @@ python evaluation/run_eval.py --url http://localhost:8000
 ```
 
 Metrics: Precision@5, Recall@5, MRR, NDCG@5, ROUGE-L, BERTScore F1, latency.
-
----
-
-## Deployment (Azure)
-
-```bash
-cd backend
-docker build -t medbotacr.azurecr.io/medbot-api:latest .
-docker push medbotacr.azurecr.io/medbot-api:latest
-```
 
 ---
 
