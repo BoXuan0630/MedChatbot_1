@@ -1,0 +1,27 @@
+[
+  {
+    "question": "What is the first line treatment for type 2 diabetes mellitus?",
+    "ground_truth": "Metformin monotherapy is considered the first-line treatment for type 2 diabetes mellitus. Vildagliptin is indicated as second line therapy in patients inadequately controlled on maximal tolerated dose of metformin. Empagliflozin may also be used after adequate trial of metformin for patients with type 2 diabetes and established cardiovascular disease.",
+    "relevant_sources": ["CPG_T2DM", "Vildagliptin", "Empagliflozin", "Metformin"]
+  },
+  {
+    "question": "What are the symptoms of hypertension?",
+    "ground_truth": "Hypertension is often asymptomatic and called the silent killer. In severe cases or hypertensive crisis, symptoms may include severe headaches, shortness of breath, nosebleeds, dizziness, chest pain, blurred vision, and fatigue. Regular blood pressure screening is essential for detection.",
+    "relevant_sources": ["Hypertension", "CPG"]
+  },
+  {
+    "question": "What are the side effects of amlodipine?",
+    "ground_truth": "Common side effects of amlodipine include peripheral oedema, dizziness, flushing, headache, fatigue and nausea. Amlodipine is a calcium channel blocker used for hypertension.",
+    "relevant_sources": ["Amlodipine", "FUKKM", "drug"]
+  },
+  {
+    "question": "Apakah rawatan untuk kencing manis jenis 2?",
+    "ground_truth": "Rawatan untuk diabetes mellitus jenis 2 termasuk Dulaglutide dan Empagliflozin sebagai terapi tambahan kepada diet dan senaman. Empagliflozin diindikasikan untuk meningkatkan kawalan glisemik sebagai terapi kombinasi dengan produk perubatan penurun glukosa lain termasuk insulin.",
+    "relevant_sources": ["Dulaglutide", "Empagliflozin", "CPG_T2DM"]
+  },
+  {
+    "question": "Is intermittent fasting safe for diabetic patients?",
+    "ground_truth": "Intermittent fasting carries risks for diabetic patients including hypoglycaemia, hyperglycaemia, DKA, dehydration and thrombosis. For Type 1 diabetes, fasting during Ramadan may be safe with insulin dose adjustment and blood glucose monitoring, but patients with severe hypoglycaemia or poor glycaemic control are discouraged from fasting. For Type 2 diabetes, those in high-risk categories should abstain from fasting. Risks can be minimized through education, appropriate food choices and self-monitoring.",
+    "relevant_sources": ["CPG_T2DM", "CPG%20T1DM", "Obesity"]
+  }
+]

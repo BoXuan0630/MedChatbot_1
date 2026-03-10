@@ -1,0 +1,88 @@
+{
+  "retrieval_metrics": {
+    "precision_at_5": 0.64,
+    "recall_at_5": 0.7,
+    "mrr": 0.7067,
+    "ndcg_at_5": 0.9341
+  },
+  "answer_quality_metrics": {
+    "rouge_l": 0.1704,
+    "bert_score_f1": 0.7666
+  },
+  "system_metrics": {
+    "avg_latency_ms": 16844.52,
+    "p90_latency_ms": 25839.95,
+    "context_hit_rate": 0.8,
+    "fallback_rate": 1.0,
+    "cache_hit_rate": 0.0,
+    "grounded_mode_count": 4,
+    "knowledge_mode_count": 1
+  },
+  "per_question": [
+    {
+      "question": "What is the first line treatment for type 2 diabetes mellitus?",
+      "answer": "Based on the provided context, the first line treatment for type 2 diabetes mellitus is not explicitly stated. The context describes various drugs as add-on therapies, second-line therapies, third-line therapies, or for specific situations where other treatments (such as metformin) have failed or are contraindicated [Source 1: Empagliflozin 10mg tablet], [Source 2: Empagliflozin 25mg tablet], [Source 3: Fenofibrate 145mg tablet], [Source 4: Insulin Degludec/ Insulin Aspart 70/30 Solution for Injection in Pre- Filled Pen 100 Units/mL], [Source 5: Vildagliptin 50mg Tablet].",
+      "detected_lang": "en",
+      "context_found": true,
+      "top_score": 2.7035,
+      "precision_at_5": 0.6,
+      "recall_at_5": 0.5,
+      "mrr": 0.3333,
+      "ndcg_at_5": 0.5143,
+      "rouge_l": 0.25,
+      "latency_ms": 21562.37
+    },
+    {
+      "question": "What are the symptoms of hypertension?",
+      "answer": "Hypertension, or high blood pressure, is often called the \"silent killer\" because it typically presents without any noticeable symptoms in its early stages. Many people have hypertension for years without knowing it.\n\nSymptoms usually only manifest when blood pressure reaches dangerously high levels (a hypertensive crisis) or when long-term uncontrolled hypertension has begun to cause significant damage to organs.\n\nWhen symptoms do occur, they can include:\n\n*   **Severe headaches:** Often described as throbbing, especially in the back of the head, and sometimes worse in the morning. However, headaches are not a reliable indicator for hypertension as they are common and can have many causes.\n*   **Dizziness or lightheadedness:** Can be a vague symptom.\n*   **Nosebleeds (epistaxis):** While hypertension can contribute, nosebleeds are more commonly due to local factors.\n*   **Vision changes:** Blurred vision, double vision, or other visual disturbances due to effects on the blood vessels in the eyes (retinopathy).\n*   **Chest pain (angina):** Due to increased workload on the heart or coronary artery disease exacerbated by hypertension.\n*   **Shortness of breath (dyspnea):** Especially with exertion, or due to fluid buildup in the lungs from heart failure.\n*   **Palpitations:** A feeling of a rapid, fluttering, or pounding heart.\n*   **Fatigue or confusion:** Can occur with severe hypertension affecting the brain.\n*   **Nausea and vomiting:** Sometimes associated with severe headaches or hypertensive encephalopathy.\n*   **Blood in the urine (hematuria):** A sign of kidney damage.\n\nIt is crucial to understand that these symptoms are not specific to hypertension and can be caused by many other conditions. Therefore, hypertension is reliably diagnosed only through regular blood pressure measurement, not by the presence or absence of symptoms.\n\nNote: This answer is based on general medical knowledge. Please consult your doctor.",
+      "detected_lang": "en",
+      "context_found": false,
+      "top_score": -0.6267,
+      "precision_at_5": 0.8,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "ndcg_at_5": 1.5706,
+      "rouge_l": 0.1456,
+      "latency_ms": 10602.04
+    },
+    {
+      "question": "What are the side effects of amlodipine?",
+      "answer": "The provided context does not list the side effects of amlodipine.",
+      "detected_lang": "en",
+      "context_found": true,
+      "top_score": 1.4011,
+      "precision_at_5": 0.2,
+      "recall_at_5": 0.3333,
+      "mrr": 0.2,
+      "ndcg_at_5": 0.1815,
+      "rouge_l": 0.2353,
+      "latency_ms": 6715.59
+    },
+    {
+      "question": "Apakah rawatan untuk kencing manis jenis 2?",
+      "answer": "Berdasarkan konteks yang diberikan, rawatan untuk diabetes melitus jenis 2 termasuk:\n\n*   **Metformin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021], [Source 3: Dapagliflozin 10mg Tablet], [Source 4: Empagliflozin 10mg tablet], [Source 5: Empagliflozin 25mg tablet]\n*   **Sulphonylurea** (cth. glimepiride) [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Linagliptin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Sitagliptin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Saxagliptin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Vildagliptin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Perencat SGLT2 (Sodium-glucose cotransporter 2 inhibitors)**, termasuk:\n    *   **Empagliflozin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021], [Source 4: Empagliflozin 10mg tablet], [Source 5: Empagliflozin 25mg tablet]\n    *   **Dapagliflozin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021], [Source 3: Dapagliflozin 10mg Tablet]\n    *   **Canagliflozin** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Agonis Reseptor Peptida-1 Sifat Glukagon (Glucagon-like peptide-1 receptor agonists / GLP-1 RA)**, termasuk:\n    *   **Exenatide** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n    *   **Liraglutide** [Source 1: CPG_T2DM_6th_Edition_2020_13042021]\n    *   **Lixisenatide** [Source 1: CPG_T2DM_6th_Edition_2020_13042021], [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n    *   **Dulaglutide** [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n    *   **Semaglutide** [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Insulin** (cth. insulin glargine, NPH insulin, biphasic insulin aspart, insulin lispro) [Source 1: CPG_T2DM_6th_Edition_2020_13042021], [Source 2: CPG_T2DM_6th_Edition_2020_13042021], [Source 3: Dapagliflozin 10mg Tablet], [Source 4: Empagliflozin 10mg tablet], [Source 5: Empagliflozin 25mg tablet]\n*   **Acarbose** [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Alogliptin** [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Thiazolidinedion** (cth. pioglitazone, rosiglitazone) [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n*   **Perencat Dipeptidyl Peptidase-4 (DPP-4 inhibitors)** [Source 2: CPG_T2DM_6th_Edition_2020_13042021]\n\nRawatan ini biasanya digunakan bersama dengan **diet dan senaman** untuk pengawalan glisemik yang mencukupi [Source 3: Dapagliflozin 10mg Tablet], [Source 4: Empagliflozin 10mg tablet], [Source 5: Empagliflozin 25mg tablet].",
+      "detected_lang": "ms",
+      "context_found": true,
+      "top_score": 4.55,
+      "precision_at_5": 0.8,
+      "recall_at_5": 0.6667,
+      "mrr": 1.0,
+      "ndcg_at_5": 1.2021,
+      "rouge_l": 0.0741,
+      "latency_ms": 28691.66
+    },
+    {
+      "question": "Is intermittent fasting safe for diabetic patients?",
+      "answer": "Intermittent fasting, specifically fasting during Ramadan, for diabetic patients carries major risks including hypoglycemia, hyperglycemia, diabetic ketoacidosis (DKA), dehydration, and thrombosis [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021].\n\nPatients with certain features are considered at very high risk for complications and are discouraged from fasting or should abstain:\n*   Severe hypoglycemia within three months prior to Ramadan [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n*   History of recurrent hypoglycemia [Source 1: CPG%20T1DM]\n*   Poor glycaemic control [Source 1: CPG%20T1DM]\n*   DKA within three months prior to Ramadan [Source 1: CPG%20T1DM]\n\nHowever, fasting during Ramadan for patients with Type 1 Diabetes Mellitus (T1DM) is stated to be safe with adjustment of insulin dose and regular blood glucose (BG) monitoring [Source 1: CPG%20T1DM]. For both T1DM and Type 2 Diabetes Mellitus (T2DM), those who intend to fast should have good glycaemic control, perform regular self-monitoring, and be under professional supervision [Source 1: CPG%20T1DM]. They should also receive Ramadan-focused patient education and follow an individualized management plan [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]. This plan includes:\n*   Pre-Ramadan medical assessment [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n*   Meal planning and dietary advice (e.g., consumption of complex carbohydrates during 'sahur' and liberal fluid intake during non-fasting hours) [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n*   Adjustment of insulin and glucose-lowering medication doses [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n*   Appropriate physical activity (avoiding rigorous exercise during fasting hours) [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n*   Frequent self-monitoring of blood glucose (SMBG) [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n*   Clear indications to break the fast, such as BG levels being low (<4 mmol/L or <3.9 mmol/L) or high (>16.7 mmol/L), or experiencing symptoms of hypoglycemia or severe dehydration [Source 1: CPG%20T1DM], [Source 3: CPG_T2DM_6th_Edition_2020_13042021]\n\nRegarding intermittent fasting generally for weight management, the context states that a conclusion on its effectiveness cannot be reached as clinical studies and systematic reviews differ in their conclusions due to wide study variability [Source 2: CPG_Management_of_Obesity_(Second_Edition)_2023]. However, this section does not specifically address its safety for diabetic patients outside of the Ramadan context.",
+      "detected_lang": "en",
+      "context_found": true,
+      "top_score": 5.1192,
+      "precision_at_5": 0.8,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "ndcg_at_5": 1.2021,
+      "rouge_l": 0.1468,
+      "latency_ms": 16650.93
+    }
+  ]
+}
