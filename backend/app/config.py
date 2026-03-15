@@ -31,4 +31,8 @@ class Settings(BaseSettings):
     REDIS_TRANSLATE_TTL: int = 86400  # 24 hours
     REDIS_SESSION_TTL: int = 1800     # 30 minutes
 
+    # File upload
+    MAX_UPLOAD_SIZE_MB: int = 10
+    MAX_PDF_PAGES: int = 20
+
     model_config = SettingsConfigDict(env_file=".env")

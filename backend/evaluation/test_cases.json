@@ -23,5 +23,105 @@
     "question": "Is intermittent fasting safe for diabetic patients?",
     "ground_truth": "Intermittent fasting carries risks for diabetic patients including hypoglycaemia, hyperglycaemia, DKA, dehydration and thrombosis. For Type 1 diabetes, fasting during Ramadan may be safe with insulin dose adjustment and blood glucose monitoring, but patients with severe hypoglycaemia or poor glycaemic control are discouraged from fasting. For Type 2 diabetes, those in high-risk categories should abstain from fasting. Risks can be minimized through education, appropriate food choices and self-monitoring.",
     "relevant_sources": ["CPG_T2DM", "CPG%20T1DM", "Obesity"]
+  },
+  {
+    "question": "How is asthma managed in adults?",
+    "ground_truth": "Asthma management in adults involves a stepwise approach starting with inhaled corticosteroids (ICS) as controller therapy, combined with short-acting beta-2 agonists (SABA) for relief. Long-acting beta-2 agonists (LABA) are added for moderate persistent asthma. Leukotriene receptor antagonists may be used as add-on therapy.",
+    "relevant_sources": ["Asthma", "CPG"]
+  },
+  {
+    "question": "What is the recommended blood pressure target for diabetic patients?",
+    "ground_truth": "For diabetic patients, the recommended blood pressure target is generally below 130/80 mmHg. Lifestyle modifications should be implemented alongside pharmacological treatment. ACE inhibitors or ARBs are preferred first-line agents due to their renoprotective effects.",
+    "relevant_sources": ["Hypertension", "CPG_T2DM", "CPG"]
+  },
+  {
+    "question": "What is the treatment for heart failure?",
+    "ground_truth": "Heart failure treatment includes ACE inhibitors or ARBs, beta-blockers, diuretics for fluid overload, and mineralocorticoid receptor antagonists. SGLT2 inhibitors have shown benefit in heart failure patients. Device therapy like CRT or ICD may be considered for selected patients.",
+    "relevant_sources": ["Heart Failure", "CPG", "Empagliflozin"]
+  },
+  {
+    "question": "What are the warning signs of stroke?",
+    "ground_truth": "Warning signs of stroke can be remembered using FAST: Face drooping, Arm weakness, Speech difficulty, Time to call emergency. Other symptoms include sudden severe headache, vision problems, confusion, dizziness, and loss of balance. Immediate medical attention is critical.",
+    "relevant_sources": ["Stroke", "CPG"]
+  },
+  {
+    "question": "What is the recommended dosage of metformin?",
+    "ground_truth": "Metformin is typically started at 500mg once or twice daily with meals, and gradually increased to a maximum of 2000-2550mg per day in divided doses. Extended-release formulations may be taken once daily. Dose adjustment is needed for renal impairment.",
+    "relevant_sources": ["Metformin", "CPG_T2DM", "FUKKM"]
+  },
+  {
+    "question": "What are the contraindications for aspirin?",
+    "ground_truth": "Aspirin is contraindicated in patients with active peptic ulcer disease, aspirin allergy, bleeding disorders, severe hepatic impairment, and in children under 16 due to risk of Reye's syndrome. Caution is needed in patients with asthma and renal impairment.",
+    "relevant_sources": ["Aspirin", "FUKKM", "drug"]
+  },
+  {
+    "question": "What drugs are used for high cholesterol?",
+    "ground_truth": "Statins are the first-line treatment for high cholesterol, including atorvastatin, simvastatin, and rosuvastatin. Other agents include fibrates, ezetimibe, and PCSK9 inhibitors for patients who do not achieve target levels with statins alone.",
+    "relevant_sources": ["Atorvastatin", "Simvastatin", "Fenofibrate", "CPG"]
+  },
+  {
+    "question": "What are the indications for insulin therapy?",
+    "ground_truth": "Insulin therapy is indicated in Type 1 diabetes, Type 2 diabetes when oral agents fail to achieve glycaemic targets, during pregnancy (gestational diabetes), diabetic ketoacidosis, and in perioperative management. Basal insulin is usually initiated at 10 units or 0.1-0.2 units/kg/day.",
+    "relevant_sources": ["Insulin", "CPG_T2DM", "CPG%20T1DM"]
+  },
+  {
+    "question": "Bagaimana cara mengawal tekanan darah tinggi?",
+    "ground_truth": "Tekanan darah tinggi boleh dikawal melalui perubahan gaya hidup seperti mengurangkan pengambilan garam, berolahraga secara tetap, mengekalkan berat badan ideal, dan mengelakkan alkohol. Ubat-ubatan termasuk ACE inhibitor, ARB, calcium channel blocker, dan diuretik.",
+    "relevant_sources": ["Hypertension", "CPG", "Amlodipine"]
+  },
+  {
+    "question": "Ubat apa untuk sakit kepala yang teruk?",
+    "ground_truth": "Untuk sakit kepala yang teruk, rawatan bergantung kepada punca. Migrain boleh dirawat dengan analgesik seperti paracetamol atau ibuprofen, dan triptan untuk serangan teruk. Jika sakit kepala berterusan atau disertai gejala lain, perlu rujuk doktor untuk siasatan lanjut.",
+    "relevant_sources": ["Paracetamol", "CPG", "drug"]
+  },
+  {
+    "question": "Apa kesan sampingan ubat simvastatin?",
+    "ground_truth": "Kesan sampingan simvastatin termasuk sakit otot (myalgia), peningkatan enzim hati, gangguan gastrousus, sakit kepala, dan dalam kes yang jarang, rhabdomyolysis. Pemantauan fungsi hati dan simptom otot adalah penting.",
+    "relevant_sources": ["Simvastatin", "FUKKM", "drug"]
+  },
+  {
+    "question": "Diabetes tu ubat apa ah?",
+    "ground_truth": "Ubat diabetes jenis 2 yang biasa termasuk metformin sebagai rawatan lini pertama. Ubat lain termasuk sulphonylurea, DPP-4 inhibitor, SGLT2 inhibitor dan insulin jika diperlukan.",
+    "relevant_sources": ["CPG_T2DM", "Metformin", "Empagliflozin"]
+  },
+  {
+    "question": "My sugar very high la, what medicine should I take?",
+    "ground_truth": "For high blood sugar, metformin is usually the first medicine prescribed. Your doctor may also add other medications like sulphonylureas, SGLT2 inhibitors, or insulin depending on your sugar levels and overall health.",
+    "relevant_sources": ["CPG_T2DM", "Metformin"]
+  },
+  {
+    "question": "Doktor cakap cholesterol tinggi, kena makan ubat ke?",
+    "ground_truth": "Ya, jika paras kolesterol tinggi dan perubahan gaya hidup sahaja tidak mencukupi, doktor biasanya akan menetapkan ubat statin seperti atorvastatin atau simvastatin untuk menurunkan kolesterol dan mengurangkan risiko penyakit jantung.",
+    "relevant_sources": ["Atorvastatin", "Simvastatin", "CPG"]
+  },
+  {
+    "question": "Is yoga good for diabetes management?",
+    "ground_truth": "Yoga may help with diabetes management through stress reduction, improved flexibility, and modest improvements in blood glucose levels. However, it should complement, not replace, standard medical treatment including medication, diet, and regular aerobic exercise.",
+    "relevant_sources": []
+  },
+  {
+    "question": "Can I take vitamin D supplements daily?",
+    "ground_truth": "Vitamin D supplementation is generally safe when taken at recommended doses (600-800 IU daily for most adults). Excessive intake can cause toxicity. Consult your doctor for appropriate dosing, especially if you have kidney disease or take certain medications.",
+    "relevant_sources": []
+  },
+  {
+    "question": "What are natural remedies for high blood pressure?",
+    "ground_truth": "Natural approaches to managing high blood pressure include reducing sodium intake, regular exercise (150 minutes per week), maintaining healthy weight, DASH diet, limiting alcohol, managing stress, and adequate potassium intake. These complement but do not replace prescribed medication.",
+    "relevant_sources": []
+  },
+  {
+    "question": "What about the dosage?",
+    "ground_truth": "This is a follow-up question that requires context from the previous conversation about a specific medication to provide the correct dosage information.",
+    "relevant_sources": ["CPG_T2DM", "Metformin"]
+  },
+  {
+    "question": "Are there any side effects?",
+    "ground_truth": "This is a follow-up question asking about side effects of a medication discussed in the previous conversation turn.",
+    "relevant_sources": []
+  },
+  {
+    "question": "medicine",
+    "ground_truth": "A very short query that may be too vague to provide a specific medical answer without more context about what medicine the user is asking about.",
+    "relevant_sources": []
   }
 ]

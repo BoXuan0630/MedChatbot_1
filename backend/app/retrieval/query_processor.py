@@ -45,6 +45,37 @@ OFF_TOPIC_RESPONSE_MS = (
     "Silakan tanya saya tentang simptom, rawatan, ubat, atau sebarang kebimbangan kesihatan!"
 )
 
+EMERGENCY_RESPONSE_EN = (
+    "This sounds like it could be a medical emergency. "
+    "Please call 999 (Malaysian Emergency) or go to the nearest hospital immediately.\n\n"
+    "If you are not in Malaysia, call your local emergency number."
+)
+EMERGENCY_RESPONSE_MS = (
+    "Ini mungkin kecemasan perubatan. "
+    "Sila hubungi 999 (Kecemasan Malaysia) atau pergi ke hospital terdekat segera.\n\n"
+    "Jika anda tidak di Malaysia, hubungi nombor kecemasan tempatan anda."
+)
+
+EMERGENCY_PHRASES = {
+    "chest pain right now", "having a heart attack", "can't breathe",
+    "cannot breathe", "difficulty breathing right now", "overdose",
+    "want to kill myself", "want to die", "suicidal", "suicide",
+    "stroke right now", "unconscious", "not breathing",
+    "sakit dada sekarang", "tak boleh bernafas", "serangan jantung",
+    "nak bunuh diri", "pengsan",
+}
+
+DOSAGE_CHANGE_PHRASES = {
+    "should i stop taking", "can i stop taking", "stop my medication",
+    "increase my dose", "reduce my dose", "change my medication",
+    "skip my medication", "double the dose", "take extra",
+    "boleh berhenti makan ubat", "boleh tambah dos", "boleh kurangkan ubat",
+    "tukar ubat", "berhenti ubat",
+}
+
+DOSAGE_WARNING_EN = "\n\nImportant: Always consult your doctor before changing, stopping, or adjusting any medication."
+DOSAGE_WARNING_MS = "\n\nPenting: Sentiasa rujuk doktor anda sebelum menukar, menghentikan, atau mengubah sebarang ubat."
+
 MEDICAL_KEYWORDS = {
     "symptom", "treatment", "medicine", "drug", "disease", "diagnosis", "doctor",
     "hospital", "pain", "fever", "cough", "diabetes", "hypertension", "blood",
@@ -73,9 +104,30 @@ def _has_medical_keyword(text: str) -> bool:
     return False
 
 
+def _has_emergency_phrase(text: str) -> bool:
+    """Check if text contains any emergency phrase."""
+    for phrase in EMERGENCY_PHRASES:
+        if phrase in text:
+            return True
+    return False
+
+
+def has_dosage_change_phrase(text: str) -> bool:
+    """Check if text asks about changing/stopping medication."""
+    lower = text.lower()
+    for phrase in DOSAGE_CHANGE_PHRASES:
+        if phrase in lower:
+            return True
+    return False
+
+
 def classify_intent(text: str) -> str:
-    """Classify user intent: 'greeting', 'medical', or 'off_topic'."""
+    """Classify user intent: 'emergency', 'greeting', 'medical', or 'off_topic'."""
     normalized = text.strip().lower().rstrip("?!.")
+
+    # Check emergency first — highest priority
+    if _has_emergency_phrase(normalized):
+        return "emergency"
 
     # Check greetings (exact match)
     if normalized in GREETINGS:

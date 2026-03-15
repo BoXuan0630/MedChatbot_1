@@ -45,3 +45,26 @@ class QALog(Base):
     sources = Column(JSONB)
     latency_ms = Column(Float)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FileContext(Base):
+    __tablename__ = "file_contexts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, nullable=False, index=True)
+    original_filename = Column(String, nullable=False)
+    file_type = Column(String, nullable=False)
+    extracted_text = Column(Text, nullable=False)
+    page_count = Column(Integer, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, nullable=False, index=True)
+    question = Column(Text, nullable=False)
+    rating = Column(String, nullable=False)  # "up" or "down"
+    comment = Column(Text, default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

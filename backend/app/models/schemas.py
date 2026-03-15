@@ -15,10 +15,20 @@ class ChatRequest(BaseModel):
 
     @field_validator("question")
     @classmethod
-    def not_empty(cls, v):
-        if not v.strip():
+    def validate_question(cls, v):
+        v = v.strip()
+        if not v:
             raise ValueError("Question cannot be empty")
-        return v.strip()
+        if len(v) > 1000:
+            raise ValueError("Question must be 1000 characters or less")
+        return v
+
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, v):
+        if len(v) > 100:
+            raise ValueError("session_id must be 100 characters or less")
+        return v
 
 
 class Source(BaseModel):
@@ -38,6 +48,7 @@ class ChatResponse(BaseModel):
     top_score: float
     session_id: str
     cached: bool = False
+    follow_ups: list[str] = []
 
 
 class HistoryMessage(BaseModel):
@@ -55,6 +66,20 @@ class TestCase(BaseModel):
     question: str
     ground_truth: str
     relevant_sources: list[str] = []
+
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    question: str
+    rating: str  # "up" or "down"
+    comment: str = ""
+
+    @field_validator("rating")
+    @classmethod
+    def validate_rating(cls, v):
+        if v not in ("up", "down"):
+            raise ValueError("Rating must be 'up' or 'down'")
+        return v
 
 
 class EvaluationRequest(BaseModel):

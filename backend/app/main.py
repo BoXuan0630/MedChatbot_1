@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import google.generativeai as genai
 import httpx
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -22,6 +22,7 @@ from app.models.schemas import (
     ChatResponse,
     ChatHistoryResponse,
     EvaluationRequest,
+    FeedbackRequest,
     HistoryMessage,
     Source,
 )
@@ -30,16 +31,30 @@ from app.retrieval.query_processor import (
     detect_language,
     translate_query,
     reformulate_query,
+    has_dosage_change_phrase,
     GREETING_RESPONSE_EN,
     GREETING_RESPONSE_MS,
     OFF_TOPIC_RESPONSE_EN,
     OFF_TOPIC_RESPONSE_MS,
+    EMERGENCY_RESPONSE_EN,
+    EMERGENCY_RESPONSE_MS,
+    DOSAGE_WARNING_EN,
+    DOSAGE_WARNING_MS,
 )
 from app.retrieval.retriever import retrieve
-from app.generation.llm import generate_answer
+from app.generation.llm import generate_answer, generate_follow_ups, _build_file_context_prompt, _call_gemini
+from app.models.db_models import Feedback
 from app.services.cache_service import get_cached_answer, set_cached_answer
 from app.services.chat_service import save_message, get_history, get_recent_history
 from app.services.log_service import log_qa
+from app.services.file_service import (
+    validate_upload,
+    pdf_to_images,
+    extract_file_content,
+    save_file_context,
+    get_latest_file_context,
+    get_file_list,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -191,13 +206,15 @@ async def chat(req: ChatRequest):
     detected_lang = detect_language(req.question)
     intent = classify_intent(req.question)
 
-    if intent in ("greeting", "off_topic"):
+    if intent in ("greeting", "off_topic", "emergency"):
         if intent == "greeting":
             answer = GREETING_RESPONSE_MS if detected_lang == "ms" else GREETING_RESPONSE_EN
+        elif intent == "emergency":
+            answer = EMERGENCY_RESPONSE_MS if detected_lang == "ms" else EMERGENCY_RESPONSE_EN
         else:
             answer = OFF_TOPIC_RESPONSE_MS if detected_lang == "ms" else OFF_TOPIC_RESPONSE_EN
 
-        answer_mode = "greeting" if intent == "greeting" else "off_topic"
+        answer_mode = intent
         response = ChatResponse(
             question=req.question,
             answer=answer,
@@ -238,6 +255,69 @@ async def chat(req: ChatRequest):
 
         return response
 
+    # Step 0b: Check if session has file context (for follow-up questions about uploaded files)
+    if req.session_id:
+        try:
+            async with app.state.session_factory() as db_session:
+                file_context = await get_latest_file_context(req.session_id, db_session)
+            if file_context:
+                prompt = _build_file_context_prompt(req.question, file_context, detected_lang)
+                try:
+                    answer = await _call_gemini(prompt, app.state)
+                except Exception as e:
+                    logger.error("Gemini file context generation failed: %s", e)
+                    answer = (
+                        "Maaf, saya tidak dapat menjawab soalan ini sekarang. Sila cuba lagi."
+                        if detected_lang == "ms"
+                        else "Sorry, I cannot answer this question right now. Please try again."
+                    )
+
+                follow_ups = []
+                try:
+                    follow_ups = await asyncio.wait_for(
+                        generate_follow_ups(req.question, answer, detected_lang, app.state),
+                        timeout=5.0,
+                    )
+                except Exception:
+                    pass
+
+                latency_ms = (time.time() - start_time) * 1000
+                response = ChatResponse(
+                    question=req.question,
+                    answer=answer,
+                    sources=[],
+                    detected_lang=detected_lang,
+                    translated_query="",
+                    answer_mode="file_summary",
+                    model_used="gemini",
+                    context_found=True,
+                    top_score=0.0,
+                    session_id=session_id,
+                    cached=False,
+                    follow_ups=follow_ups,
+                )
+
+                async def _file_side_effects():
+                    try:
+                        async with app.state.session_factory() as bg_session:
+                            await save_message(session_id, "user", req.question, bg_session, commit=False)
+                            await save_message(session_id, "assistant", answer, bg_session, commit=False)
+                            await log_qa(
+                                session_id=session_id, question=req.question, answer=answer,
+                                detected_lang=detected_lang, translated_query="",
+                                answer_mode="file_summary", model_used="gemini",
+                                context_found=True, top_score=0.0, sources=[],
+                                latency_ms=latency_ms, db_session=bg_session, commit=False,
+                            )
+                            await bg_session.commit()
+                    except Exception:
+                        logger.exception("Failed to save file follow-up side effects")
+
+                asyncio.create_task(_file_side_effects())
+                return response
+        except Exception:
+            logger.warning("File context check failed, continuing with normal pipeline")
+
     # Step 1: Check answer cache
     try:
         cached = await get_cached_answer(req.question, redis_client)
@@ -274,12 +354,30 @@ async def chat(req: ChatRequest):
             clean_query, retrieval_result, detected_lang, app.state, settings
         )
 
+        # Step 9b: Append dosage safety warning if user asks about changing medication
+        if has_dosage_change_phrase(req.question):
+            warning = DOSAGE_WARNING_MS if detected_lang == "ms" else DOSAGE_WARNING_EN
+            answer += warning
+
         # Build response
         answer_mode = "grounded" if retrieval_result["context_found"] else "knowledge"
+        # If grounded fallback happened, switch answer_mode to knowledge
+        if model_used == "gemini_fallback":
+            answer_mode = "knowledge"
         sources = [
             Source(title=s["title"], source=s["source"])
             for s in retrieval_result["sources"]
         ]
+
+        # Generate follow-up questions (non-blocking, with timeout)
+        follow_ups = []
+        try:
+            follow_ups = await asyncio.wait_for(
+                generate_follow_ups(clean_query, answer, detected_lang, app.state),
+                timeout=5.0,
+            )
+        except Exception:
+            logger.warning("Follow-up generation failed or timed out")
 
         latency_ms = (time.time() - start_time) * 1000
 
@@ -295,6 +393,7 @@ async def chat(req: ChatRequest):
             top_score=round(retrieval_result["top_score"], 4),
             session_id=session_id,
             cached=False,
+            follow_ups=follow_ups,
         )
 
         # Step 10: Side effects — fire in background so response returns immediately
@@ -530,3 +629,443 @@ async def evaluate(req: EvaluationRequest):
         },
         "per_question": per_question,
     }
+
+
+# ──────────────────────────────────────────────
+# POST /chat/feedback
+# ──────────────────────────────────────────────
+@app.post("/chat/feedback")
+async def chat_feedback(req: FeedbackRequest):
+    try:
+        async with app.state.session_factory() as db_session:
+            entry = Feedback(
+                session_id=req.session_id,
+                question=req.question,
+                rating=req.rating,
+                comment=req.comment,
+            )
+            db_session.add(entry)
+            await db_session.commit()
+    except Exception:
+        logger.exception("Failed to save feedback")
+        raise HTTPException(status_code=500, detail="Failed to save feedback")
+    return {"status": "ok"}
+
+
+# ──────────────────────────────────────────────
+# POST /chat/upload
+# ──────────────────────────────────────────────
+@app.post("/chat/upload", response_model=ChatResponse)
+async def chat_upload(
+    question: str = Form(...),
+    session_id: str = Form(""),
+    file: UploadFile = File(...),
+):
+    start_time = time.time()
+    settings = app.state.settings
+
+    # Validate question
+    question = question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question cannot be empty")
+    if len(question) > 1000:
+        raise HTTPException(status_code=400, detail="Question must be 1000 characters or less")
+
+    session_id = session_id.strip() or str(uuid.uuid4())
+    detected_lang = detect_language(question)
+
+    # Validate and process file
+    file_bytes, file_ext = await validate_upload(file, settings)
+
+    if file_ext == "pdf":
+        images = pdf_to_images(file_bytes, settings.MAX_PDF_PAGES)
+    else:
+        from PIL import Image
+        import io
+        images = [Image.open(io.BytesIO(file_bytes))]
+
+    page_count = len(images)
+
+    # Extract text from document via Gemini Vision
+    extracted_text = await extract_file_content(images, app.state)
+
+    # Save file context to DB
+    async with app.state.session_factory() as db_session:
+        await save_file_context(
+            session_id, file.filename or "uploaded_file", file_ext,
+            extracted_text, page_count, db_session,
+        )
+
+    # Build prompt and generate answer
+    prompt = _build_file_context_prompt(question, extracted_text, detected_lang)
+    try:
+        answer = await _call_gemini(prompt, app.state)
+    except Exception as e:
+        logger.error("Gemini generation failed for file upload: %s", e)
+        answer = (
+            "Maaf, saya tidak dapat menganalisis dokumen ini sekarang. Sila cuba lagi."
+            if detected_lang == "ms"
+            else "Sorry, I cannot analyze this document right now. Please try again."
+        )
+
+    # Generate follow-up questions
+    follow_ups = []
+    try:
+        follow_ups = await asyncio.wait_for(
+            generate_follow_ups(question, answer, detected_lang, app.state),
+            timeout=5.0,
+        )
+    except Exception:
+        logger.warning("Follow-up generation failed or timed out")
+
+    latency_ms = (time.time() - start_time) * 1000
+
+    response = ChatResponse(
+        question=question,
+        answer=answer,
+        sources=[],
+        detected_lang=detected_lang,
+        translated_query="",
+        answer_mode="file_summary",
+        model_used="gemini",
+        context_found=True,
+        top_score=0.0,
+        session_id=session_id,
+        cached=False,
+        follow_ups=follow_ups,
+    )
+
+    # Side effects — save chat history + log
+    async def _side_effects():
+        try:
+            async with app.state.session_factory() as bg_session:
+                await save_message(session_id, "user", f"[File: {file.filename}] {question}", bg_session, commit=False)
+                await save_message(session_id, "assistant", answer, bg_session, commit=False)
+                await log_qa(
+                    session_id=session_id,
+                    question=question,
+                    answer=answer,
+                    detected_lang=detected_lang,
+                    translated_query="",
+                    answer_mode="file_summary",
+                    model_used="gemini",
+                    context_found=True,
+                    top_score=0.0,
+                    sources=[],
+                    latency_ms=latency_ms,
+                    db_session=bg_session,
+                    commit=False,
+                )
+                await bg_session.commit()
+        except Exception:
+            logger.exception("Failed to save file upload chat history / log")
+
+    asyncio.create_task(_side_effects())
+    return response
+
+
+# ──────────────────────────────────────────────
+# POST /chat/upload/stream  (Server-Sent Events)
+# ──────────────────────────────────────────────
+@app.post("/chat/upload/stream")
+async def chat_upload_stream(
+    question: str = Form(...),
+    session_id: str = Form(""),
+    file: UploadFile = File(...),
+):
+    import json as _json
+    from starlette.responses import StreamingResponse
+
+    start_time = time.time()
+    settings = app.state.settings
+
+    # Validate question
+    question = question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question cannot be empty")
+    if len(question) > 1000:
+        raise HTTPException(status_code=400, detail="Question must be 1000 characters or less")
+
+    session_id = session_id.strip() or str(uuid.uuid4())
+    detected_lang = detect_language(question)
+
+    # Validate and process file (before streaming starts)
+    file_bytes, file_ext = await validate_upload(file, settings)
+
+    if file_ext == "pdf":
+        images = pdf_to_images(file_bytes, settings.MAX_PDF_PAGES)
+    else:
+        from PIL import Image
+        import io
+        images = [Image.open(io.BytesIO(file_bytes))]
+
+    page_count = len(images)
+
+    # Extract text from document via Gemini Vision
+    extracted_text = await extract_file_content(images, app.state)
+
+    # Save file context to DB
+    async with app.state.session_factory() as db_session:
+        await save_file_context(
+            session_id, file.filename or "uploaded_file", file_ext,
+            extracted_text, page_count, db_session,
+        )
+
+    # Stream the answer
+    async def _stream():
+        try:
+            prompt = _build_file_context_prompt(question, extracted_text, detected_lang)
+
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: app.state.gemini.generate_content(prompt, stream=True),
+            )
+
+            full_answer = ""
+            for chunk in response:
+                if chunk.text:
+                    full_answer += chunk.text
+                    yield f"data: {_json.dumps({'token': chunk.text, 'done': False})}\n\n"
+
+            # Final event
+            yield f"data: {_json.dumps({'token': '', 'done': True, 'answer_mode': 'file_summary', 'sources': [], 'session_id': session_id, 'detected_lang': detected_lang, 'top_score': 0.0})}\n\n"
+
+            # Side effects
+            latency_ms = (time.time() - start_time) * 1000
+            try:
+                async with app.state.session_factory() as bg_session:
+                    await save_message(session_id, "user", f"[File: {file.filename}] {question}", bg_session, commit=False)
+                    await save_message(session_id, "assistant", full_answer, bg_session, commit=False)
+                    await log_qa(
+                        session_id=session_id,
+                        question=question,
+                        answer=full_answer,
+                        detected_lang=detected_lang,
+                        translated_query="",
+                        answer_mode="file_summary",
+                        model_used="gemini",
+                        context_found=True,
+                        top_score=0.0,
+                        sources=[],
+                        latency_ms=latency_ms,
+                        db_session=bg_session,
+                        commit=False,
+                    )
+                    await bg_session.commit()
+            except Exception:
+                logger.exception("Stream file upload side effects failed")
+
+        except Exception as e:
+            logger.exception("File upload streaming failed")
+            yield f"data: {_json.dumps({'token': '', 'done': True, 'error': str(e)})}\n\n"
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
+
+
+# ──────────────────────────────────────────────
+# GET /files/{session_id}
+# ──────────────────────────────────────────────
+@app.get("/files/{session_id}")
+async def list_files(session_id: str):
+    async with app.state.session_factory() as db_session:
+        files = await get_file_list(session_id, db_session)
+    return {
+        "session_id": session_id,
+        "files": [
+            {
+                "id": f.id,
+                "filename": f.original_filename,
+                "file_type": f.file_type,
+                "page_count": f.page_count,
+                "created_at": f.created_at.isoformat() if f.created_at else None,
+            }
+            for f in files
+        ],
+    }
+
+
+# ──────────────────────────────────────────────
+# POST /chat/stream  (Server-Sent Events)
+# ──────────────────────────────────────────────
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    import json as _json
+    from starlette.responses import StreamingResponse
+
+    start_time = time.time()
+    settings = app.state.settings
+    redis_client = app.state.redis
+
+    session_id = req.session_id or str(uuid.uuid4())
+    detected_lang = detect_language(req.question)
+    intent = classify_intent(req.question)
+
+    # Short-circuit intents — send as single SSE event
+    if intent in ("greeting", "off_topic", "emergency"):
+        if intent == "greeting":
+            answer = GREETING_RESPONSE_MS if detected_lang == "ms" else GREETING_RESPONSE_EN
+        elif intent == "emergency":
+            answer = EMERGENCY_RESPONSE_MS if detected_lang == "ms" else EMERGENCY_RESPONSE_EN
+        else:
+            answer = OFF_TOPIC_RESPONSE_MS if detected_lang == "ms" else OFF_TOPIC_RESPONSE_EN
+
+        async def _short_circuit():
+            yield f"data: {_json.dumps({'token': answer, 'done': False})}\n\n"
+            yield f"data: {_json.dumps({'token': '', 'done': True, 'answer_mode': intent, 'sources': [], 'session_id': session_id})}\n\n"
+
+        return StreamingResponse(_short_circuit(), media_type="text/event-stream")
+
+    # Check file context for follow-up questions
+    file_context = None
+    if req.session_id:
+        try:
+            async with app.state.session_factory() as db_session:
+                file_context = await get_latest_file_context(req.session_id, db_session)
+        except Exception:
+            logger.warning("File context check failed in stream, continuing with RAG")
+
+    if file_context:
+        async def _file_stream():
+            try:
+                prompt = _build_file_context_prompt(req.question, file_context, detected_lang)
+                loop = asyncio.get_running_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: app.state.gemini.generate_content(prompt, stream=True),
+                )
+
+                full_answer = ""
+                for chunk in response:
+                    if chunk.text:
+                        full_answer += chunk.text
+                        yield f"data: {_json.dumps({'token': chunk.text, 'done': False})}\n\n"
+
+                yield f"data: {_json.dumps({'token': '', 'done': True, 'answer_mode': 'file_summary', 'sources': [], 'session_id': session_id, 'detected_lang': detected_lang, 'top_score': 0.0})}\n\n"
+
+                # Side effects
+                latency_ms = (time.time() - start_time) * 1000
+                try:
+                    async with app.state.session_factory() as bg_session:
+                        await save_message(session_id, "user", req.question, bg_session, commit=False)
+                        await save_message(session_id, "assistant", full_answer, bg_session, commit=False)
+                        await log_qa(
+                            session_id=session_id, question=req.question, answer=full_answer,
+                            detected_lang=detected_lang, translated_query="",
+                            answer_mode="file_summary", model_used="gemini",
+                            context_found=True, top_score=0.0, sources=[],
+                            latency_ms=latency_ms, db_session=bg_session, commit=False,
+                        )
+                        await bg_session.commit()
+                except Exception:
+                    logger.exception("File stream side effects failed")
+            except Exception as e:
+                logger.exception("File context streaming failed")
+                yield f"data: {_json.dumps({'token': '', 'done': True, 'error': str(e)})}\n\n"
+
+        return StreamingResponse(_file_stream(), media_type="text/event-stream")
+
+    # Full pipeline — retrieval is non-streamed, generation is streamed
+    async def _stream():
+        try:
+            async with app.state.session_factory() as db_session:
+                question = req.question
+                if req.session_id:
+                    history = await get_recent_history(session_id, db_session)
+                    question = await reformulate_query(question, history, app.state)
+
+                if detected_lang == "ms":
+                    clean_query = await translate_query(
+                        question, app.state, redis_client, settings
+                    )
+                else:
+                    clean_query = question
+
+                retrieval_result = await retrieve(
+                    clean_query, app.state, settings, db_session,
+                    use_reranking=req.use_reranking,
+                )
+
+            context_found = retrieval_result["context_found"]
+            parents = retrieval_result.get("parents", {})
+
+            context = ""
+            if context_found and parents:
+                context_parts = []
+                for i, (pid, data) in enumerate(parents.items(), 1):
+                    context_parts.append(f"[Source {i}: {data['title']}]\n{data['text']}")
+                context = "\n\n".join(context_parts)
+
+            # Build prompt
+            from app.generation.llm import _build_grounded_prompt, _build_knowledge_prompt
+            if context_found:
+                prompt = _build_grounded_prompt(clean_query, context, detected_lang)
+            else:
+                prompt = _build_knowledge_prompt(clean_query, detected_lang)
+
+            # Stream Gemini response
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: app.state.gemini.generate_content(prompt, stream=True),
+            )
+
+            full_answer = ""
+            for chunk in response:
+                if chunk.text:
+                    full_answer += chunk.text
+                    yield f"data: {_json.dumps({'token': chunk.text, 'done': False})}\n\n"
+
+            # Append disclaimer for knowledge mode
+            if not context_found:
+                from app.generation.llm import DISCLAIMER_MS, DISCLAIMER_EN
+                disclaimer = DISCLAIMER_MS if detected_lang == "ms" else DISCLAIMER_EN
+                suffix = f"\n\n{disclaimer}"
+                full_answer += suffix
+                yield f"data: {_json.dumps({'token': suffix, 'done': False})}\n\n"
+
+            # Dosage warning
+            if has_dosage_change_phrase(req.question):
+                warning = DOSAGE_WARNING_MS if detected_lang == "ms" else DOSAGE_WARNING_EN
+                full_answer += warning
+                yield f"data: {_json.dumps({'token': warning, 'done': False})}\n\n"
+
+            answer_mode = "grounded" if context_found else "knowledge"
+            sources = [
+                {"title": s["title"], "source": s["source"]}
+                for s in retrieval_result["sources"]
+            ] if answer_mode == "grounded" else []
+
+            # Final event with metadata
+            yield f"data: {_json.dumps({'token': '', 'done': True, 'answer_mode': answer_mode, 'sources': sources, 'session_id': session_id, 'detected_lang': detected_lang, 'top_score': round(retrieval_result['top_score'], 4)})}\n\n"
+
+            # Side effects
+            latency_ms = (time.time() - start_time) * 1000
+            try:
+                async with app.state.session_factory() as bg_session:
+                    await save_message(session_id, "user", req.question, bg_session, commit=False)
+                    await save_message(session_id, "assistant", full_answer, bg_session, commit=False)
+                    await log_qa(
+                        session_id=session_id,
+                        question=req.question,
+                        answer=full_answer,
+                        detected_lang=detected_lang,
+                        translated_query=clean_query if detected_lang == "ms" else "",
+                        answer_mode=answer_mode,
+                        model_used="gemini",
+                        context_found=context_found,
+                        top_score=retrieval_result["top_score"],
+                        sources=sources,
+                        latency_ms=latency_ms,
+                        db_session=bg_session,
+                        commit=False,
+                    )
+                    await bg_session.commit()
+            except Exception:
+                logger.exception("Stream side effects failed")
+
+        except Exception as e:
+            logger.exception("Streaming generation failed")
+            yield f"data: {_json.dumps({'token': '', 'done': True, 'error': str(e)})}\n\n"
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
